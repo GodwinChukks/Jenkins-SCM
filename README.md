@@ -23,9 +23,45 @@
 
 3
 
-### 2. Connect jenkins to jenkins-scm repository by pasting the repository url in the area selected below. Make sure your current branch is main
+### 2. Connecting jenkins to jenkins-scm repository by pasting the repository url in the area selected below, and ensuring  current branch is set to main
+
+4
+
+5
+
+6
 
 ### 3. Save configuration and run "build now" to connect jenkins to our repository
 
-4
+### Jenkins successfully connects to Github repository (Jenkins-SCM) and built freestyle job
+
+7
+
+
+## Configuring Build Trigger
+
+### As an engineer, we need to be able to automate things and make our work easier in possible ways. We have connected jenkins to jenkins-scm, but we cannot run a new build with clicking on Build Now. To eliminate this, we need to configure a build trigger to our jenkins job. With this, jenkins will run a new build anytime a change is made to our github repository
+
+### 1. Clicking on "Configure" your job and add this configurations
+
+8
+
+### 2. configuring build trigger to configure triggering the job from GitHub webhook
+
+9
+
+### 3. Creating Github webhook
+
+10
+
+### Github webhook configured
+
+11
+
+### Successfully configured Github webhook
+
+12
+
+
+
 
