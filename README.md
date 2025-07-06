@@ -8,11 +8,11 @@
 
 ### 1.  From the dasboard on the left side, click on new
 
-1
+![image](screenshot/1.PNG)
 
 ### 2. Creating a freestyle project with name  "my-first-job"
 
-2
+![image](screenshot/2.PNG)
 
 ## Connecting Jenkins To Our Source Code Management
 
@@ -21,21 +21,21 @@
 
 ### 1. Create a new github repository called jenkins-scm with a README.md file
 
-3
+![image](screenshot/3.PNG)
 
 ### 2. Connecting jenkins to jenkins-scm repository by pasting the repository url in the area selected below, and ensuring  current branch is set to main
 
-4
+![image](screenshot/4.PNG)
 
-5
+![image](screenshot/5.PNG)
 
-6
+![image](screenshot/6.PNG)
 
 ### 3. Save configuration and run "build now" to connect jenkins to our repository
 
 ### Jenkins successfully connects to Github repository (Jenkins-SCM) and built freestyle job
 
-7
+![image](screenshot/7.PNG)
 
 
 ## Configuring Build Trigger
@@ -44,24 +44,26 @@
 
 ### 1. Clicking on "Configure" your job and add this configurations
 
-8
+![image](screenshot/8.PNG)
 
 ### 2. configuring build trigger to configure triggering the job from GitHub webhook
 
-9
+![image](screenshot/9.PNG)
 
 ### 3. Creating Github webhook
 
-10
+![image](screenshot/10.PNG)
 
 ### Github webhook configured
 
-11
+![image](screenshot/11.PNG)
 
 ### Successfully configured Github webhook
 
-12
+![image](screenshot/12.PNG)
 
+### After change was made on the Github file and pushed to Github. A new build was triggered automatical
 
+![image](screenshot/13.PNG)
 
 
