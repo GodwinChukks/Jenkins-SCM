@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush()  // Automatically triggers builds when code is pushed to GitHub
+    }
+
     stages {
         stage('Connect to GitHub') {
             steps {
