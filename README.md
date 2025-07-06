@@ -78,84 +78,35 @@
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'BRANCH', defaultValue: 'main', description: 'Git branch to build from')
-    }
-
-    environment {
-        IMAGE_TAG = "godwinchukks/godwin_image:${BUILD_NUMBER}"     // Unique tag per build
-        CONTAINER_NAME = "godwin_container"
+    triggers {
+        githubPush()  // Automatically triggers builds when code is pushed to GitHub
     }
 
     stages {
         stage('Connect to GitHub') {
             steps {
-                echo "📥 Cloning branch: ${params.BRANCH}"
                 checkout scmGit(
-                    branches: [[name: "*/${params.BRANCH}"]],
-                    userRemoteConfigs: [[url: 'https://github.com/RidwanAz/jenkins-scm.git']]
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://github.com/GodwinChukks/Jenkins-SCM.git']]
                 )
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                echo '🧪 Running basic test checks...'
-                sh 'ls -la'
-                sh 'echo "Workspace files listed successfully."'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo "🔧 Building Docker image: $IMAGE_TAG"
-                sh "docker build -t $IMAGE_TAG ."
-            }
-        }
-
-        stage('Debug Environment') {
-            steps {
-                echo '🧠 Showing environment variables...'
-                sh 'env'
-            }
-        }
-
-        stage('Cleanup Container') {
-            steps {
-                echo "🧹 Checking for existing container: $CONTAINER_NAME"
-                sh """
-                    docker stop $CONTAINER_NAME || true
-                    docker rm $CONTAINER_NAME || true
-                """
+                script {
+                    sh 'docker build -t dockerfile .'
+                }
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                echo "🚀 Launching container: $CONTAINER_NAME"
-                sh "docker run -itd --name $CONTAINER_NAME -p 8081:80 $IMAGE_TAG"
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                echo "📦 Pushing image to Docker Hub..."
-                withCredentials([
-                    usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
-                ]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                    sh "docker push $IMAGE_TAG"
+                script {
+                    sh 'docker run -itd -p 8081:80 dockerfile'
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo "✅ Jenkins pipeline complete. Image $IMAGE_TAG successfully pushed to Docker Hub!"
-        }
-        failure {
-            echo "❌ Pipeline failed. Review logs for issues and try again."
         }
     }
 }
@@ -240,27 +191,27 @@ T
 
 ### Copying the pipeline script and pasting
 
-14
+![image](screenshot/14.PNG)
 
 ### The stage one of this script connect Jenkins to Github repository .To generate a syntax for our repository 
 
 ### 1. click on the pipeline syntax
 
-15
+![image](screenshot/15.PNG)
 
 ### 2. Selcect the drop down to search for `checkout: check out from version control`
 
-16
+![image](screenshot/16.PNG)
 
 Generating our pipeline script by clicking on Generate Gipeline Script
 
-17
+![image](screenshot/17.PNG)
 
 ### 3. Copy the generated pipeline script and replace it with the connect Jenkins to Github on stage one in the Jenkins file
 
-18
+![image](screenshot/18.PNG)
 
-19
+![image](screenshot/19.PNG)
 
 
 ## Install Docker
@@ -304,11 +255,11 @@ sudo systemctl status docker
 
 ### We have succefully install Docker
 
-21
+![image](screenshot/20.PNG)
 
 ### Docker is running
 
-22
+![image](screenshot/22.PNG)
 
 
 ## Building Pipeline Script
