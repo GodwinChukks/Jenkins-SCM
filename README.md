@@ -78,119 +78,131 @@
 pipeline {
     agent any
 
-    triggers {
-        githubPush()  // Automatically triggers builds when code is pushed to GitHub
+    parameters {
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Git branch to build from')
+    }
+
+    environment {
+        IMAGE_TAG = "godwinchukks/godwin_image:${BUILD_NUMBER}"
+        CONTAINER_NAME = "godwin_container"
     }
 
     stages {
-        stage('Connect to GitHub') {
+
+        stage('Clone Repository') {
             steps {
+                echo "📥 Cloning from branch: ${params.BRANCH}"
                 checkout scmGit(
-                    branches: [[name: '*/main']],
-                    extensions: [],
+                    branches: [[name: "*/${params.BRANCH}"]],
                     userRemoteConfigs: [[url: 'https://github.com/GodwinChukks/Jenkins-SCM.git']]
                 )
             }
         }
 
+        stage('Verify Workspace') {
+            steps {
+                echo '🔍 Verifying files in the workspace...'
+                sh 'ls -la'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'docker build -t dockerfile .'
-                }
+                echo "🔧 Building Docker image: $IMAGE_TAG"
+                sh "docker build -t $IMAGE_TAG ."
+            }
+        }
+
+        stage('Debug Environment') {
+            steps {
+                echo '🧠 Printing environment info...'
+                sh 'env'
+            }
+        }
+
+        stage('Cleanup Container') {
+            steps {
+                echo "🧹 Checking for previous container: $CONTAINER_NAME"
+                sh """
+                    docker stop $CONTAINER_NAME || true
+                    docker rm $CONTAINER_NAME || true
+                """
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                script {
-                    sh 'docker run -itd -p 8081:80 dockerfile'
+                echo "🚀 Starting container: $CONTAINER_NAME"
+                sh "docker run -itd --name $CONTAINER_NAME -p 8081:80 $IMAGE_TAG"
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo "📦 Pushing image to Docker Hub..."
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                    sh "docker push $IMAGE_TAG"
                 }
             }
         }
     }
-}
 
+    post {
+        success {
+            echo "✅ Pipeline ran successfully. Image $IMAGE_TAG is live and container is running!"
+        }
+        failure {
+            echo "❌ Pipeline failed. Please check the logs and fix the issue."
+        }
+    }
+}
 
 ```
 
-## Explaining each stage:
+## What the Top Section Does
 
-## Connect to GitHub
-T
-- This stage pulls your project’s source code from your GitHub repository: 
+### `agent any` Tells Jenkins to run this pipeline on any available server (agent). You’re not being picky.
 
-- It uses the branch name defined by the user (main by default).
+### `parameters` Adds a text box before the job runs so you can choose which branch of your Git repo to use. Default is `main`.
 
-- The repository URL is hardcoded as https://github.com/RidwanAz/jenkins-scm.git.
+### `environment` Sets up two reusable names:
 
-- Jenkins clones this repo into the workspace so future stages can work with the files.
+- `IMAGE_TAG`: The name and version of your Docker image
 
-## Run Tests
-- This performs a basic check to simulate testing:
-
-- It lists all files in the workspace using ls -la.
-
-- It confirms the workspace is correctly populated and outputs a status message.
-
-- Great for early debugging and verification before a build.
-
-## Build Docker Image
-
-- This stage packages your application into a Docker image:
-
-- It uses the current directory’s Dockerfile (docker build -t $IMAGE_TAG .).
-
-- The image is named godwin_image:<build-number> for version tracking.
-
-- This image includes everything your app needs to run.
-
-## Debug Environment
-
-- Used for troubleshooting the Jenkins environment:
-
-- It dumps all environment variables using env.
-
-- This helps diagnose issues like path errors, configuration problems, or secrets not loading.
-
-## Cleanup Container
-
-- Prevents conflict by removing old containers with the same name:
-
-- If a container named godwin_container is already running, it stops and removes it.
-
-- Uses safe logic (|| true) so it doesn’t fail the build if no container exists.
-
-- Ensures clean deployment every time.
-
-## Run Docker Container
-
-- This runs your newly built Docker image as a container:
-
-- It creates a container called godwin_container from your image.
-
-- The -p 8081:80 flag maps host port 8081 to container port 80—perfect for accessing your app in a browser.
-
-## Push to Docker Hub
-- This uploads your Docker image to Docker Hub:
-
-- Jenkins logs in using securely stored credentials (dockerhub-creds).
-
-- Then it pushes your tagged image to the godwinchukks repository.
-
-- Each pushed image is versioned by build number for traceability.
-
-## post block
-
-- Handles what happens after the pipeline finishes:
-
-- If everything runs smoothly, it prints a success message.
-
-- If any stage fails, it prints a failure message and invites you to review the logs.
+- `CONTAINER_NAME`: What your running container will be called
 
 
-### Copying the pipeline script and pasting
+## Pipeline Stages – Step-by-Step
+**Clone Repository**
+### Pulls your code from GitHub based on the branch you choose It uses checkout to bring all the files into Jenkins so the pipeline can use them.
 
+**Verify Workspace**
+### Lists all the files Jenkins downloaded It's a simple check to see that everything's there before moving forward.
+
+**Build Docker Image**
+### Takes your app code + Dockerfile and bundles it into a Docker image This image will later be pushed and deployed—it’s your app in a container box.
+
+**Debug Environment**
+### Shows all system info Jenkins has during the build You’ll see paths, variables, and settings in case something goes wrong later.
+
+**Cleanup Container**
+### Removes any leftover container with the same name This avoids errors like “container already exists” during deployment. Smart housekeeping.
+
+**Run Docker Container**
+### Starts a new container using the image you just built It opens port 8081 so your app can be viewed in a browser.
+
+**Push to Docker Hub**
+### Logs in to Docker Hub using your saved credentials and uploads your image This makes the image available anywhere—great for sharing or deployments.
+
+**Post Block**
+### Runs after the pipeline is finished:
+
+- If all stages succeed, it prints a “success” message 
+
+- If anything fails, it shows a “failure” alert with a friendly nudge to check your logs
+
+### Pasting pipeline script
 ![image](screenshot/14.PNG)
 
 ### The stage one of this script connect Jenkins to Github repository .To generate a syntax for our repository 
@@ -310,5 +322,156 @@ Accessing the Application via web browser
 ### Confirming image was successfully push to Docker Hub
 
 ![image](screenshot/6.PNG)
+
+
+## DEBUGGING
+
+### Jenkins return this error when running the build:
+
+`chmod: cannot access 'docker.sh': No such file or directory`
+
+## How to fix it
+
+- Make sure docker.sh exists in your GitHub repository
+
+- Navigate to your GitHub repo and confirm that docker.sh is located in the root directory (same level as your Jenkinsfile)
+
+- If it’s in a subfolder (e.g. scripts/docker.sh), update your script:
+
+- Confirm Jenkins is checking out the latest code by adding this diagnostic in your “Clone Repository” stage: `sh 'ls -la'`
+It will list all files in the Jenkins workspace after checkout so you can confirm docker.sh is present.
+
+- Add a fail-safe check to avoid pipeline crashing You could tweak the stage like this for graceful handling:
+
+```
+stage('Install Docker') {
+    steps {
+        script {
+            if (fileExists('docker.sh')) {
+                sh 'chmod +x docker.sh && ./docker.sh'
+            } else {
+                error("docker.sh not found. Make sure it's in the repo root.")
+            }
+        }
+    }
+}
+
+```
+
+## Jenkins return `sudo: a password is required` error when running the pipeline script.
+
+### means your docker.sh script uses sudo commands, but Jenkins runs in a non-interactive shell where it cannot prompt for a password.
+
+## How to Fix It
+
+### Option 1: Remove sudo from docker.sh
+### If Jenkins is already running with root privileges or has Docker access, edit your docker.sh and remove all sudo commands.
+
+### Option 2: Pre-install Docker manually
+### Instead of installing Docker during the pipeline, SSH into your Jenkins server and install it directly:
+
+``
+sudo apt update
+sudo apt install docker.io -y
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+
+```
+
+### Then remove the entire `Install Docker` stage from your Jenkinsfile—it won’t be needed anymore. and delete the docker.sh script that suppose to install docker.
+
+## Permission denied: Unable to open /var/lib/apt/lists/lock … are you root?
+
+### Cause: Your docker.sh script is trying to install packages using apt, but the Jenkins user doesn’t have root privileges during pipeline execution.
+
+## How to fix it 
+
+### Pre-install Docker manually SSH into your server and run:
+
+``
+sudo apt update
+sudo apt install docker.io -y
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+
+``
+
+## permission denied while trying to connect to the Docker daemon socket
+
+**Cause**: The Jenkins user doesn't have permission to run Docker commands.
+
+**Fix**: Make sure Jenkins is in the Docker group:
+
+```
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+
+```
+
+### Also verify the permissions:`ls -l /var/run/docker.sock` It ahould return `srw-rw---- 1 root docker ...` If Jenkins is in the docker group, it can access the socket.
+
+
+## ERROR: Could not find credentials entry with ID 'dockerhub-creds'
+
+### means Jenkins couldn’t locate a credential with the ID dockerhub-creds in its credential store.
+
+## How to Fix It
+### Here’s how to create the missing credential:
+
+- Go to Jenkins Dashboard → Manage Jenkins → Credentials
+
+- Select (global) under “Stores scoped to Jenkins”
+
+- Click Add Credentials
+
+## Choose:
+
+- Kind: Username and password
+
+- Username: Your Docker Hub username
+
+- Password: Your Docker Hub password or access token
+
+- ID: dockerhub-creds ← this must match exactly
+
+- Description: (optional, e.g. “Docker Hub login for pipeline”)
+
+- Click Save
+
+
+## How to Access Your App in the Browser
+
+### Your Jenkins pipeline ran this command:
+
+`docker run -itd --name godwin_container -p 8081:80 godwinchukks/godwin_image:6`
+
+## This means:
+
+- The app inside the container is listening on port 80
+
+- It’s exposed to the host machine on port 8081
+
+## So to access it:
+
+### Use your server’s public IP and mapped port: `http://3.84.224.187:8081`
+
+### Paste that into your browser and hit Enter. You should see the contents of your index.html file served by Nginx.
+
+
+## If It Doesn’t Load
+### Here are quick checks:
+
+- Security Group (AWS EC2): Make sure port 8081 is open for inbound traffic.
+
+- Firewall: Ensure nothing is blocking port 8081.
+
+- Container Status: Run docker ps to confirm the container is still running.
+
+- App Content: Your Dockerfile copies index.html to Nginx’s default path—make sure it’s valid HTML.
+
+
+
+
+
 
 
