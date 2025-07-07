@@ -22,19 +22,6 @@ pipeline {
             }
         }
 
-        stage('Install Docker') {
-            steps {
-                script {
-                    if (fileExists('docker.sh')) {
-                        echo "🛠️ Found docker.sh. Running install..."
-                        sh 'chmod +x docker.sh && ./docker.sh'
-                    } else {
-                        error("❌ docker.sh not found. Please add it to the repo root before running.")
-                    }
-                }
-            }
-        }
-
         stage('Verify Workspace') {
             steps {
                 echo '🔍 Verifying files in the workspace...'
