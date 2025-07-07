@@ -14,7 +14,7 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                echo "Cloning from branch: ${params.BRANCH}"
+                echo "📥 Cloning from branch: ${params.BRANCH}"
                 checkout scmGit(
                     branches: [[name: "*/${params.BRANCH}"]],
                     userRemoteConfigs: [[url: 'https://github.com/GodwinChukks/Jenkins-SCM.git']]
@@ -24,35 +24,41 @@ pipeline {
 
         stage('Install Docker') {
             steps {
-                echo "Running Docker install script..."
-                sh 'chmod +x docker.sh && ./docker.sh'
+                script {
+                    if (fileExists('docker.sh')) {
+                        echo "🛠️ Found docker.sh. Running install..."
+                        sh 'chmod +x docker.sh && ./docker.sh'
+                    } else {
+                        error("❌ docker.sh not found. Please add it to the repo root before running.")
+                    }
+                }
             }
         }
 
         stage('Verify Workspace') {
             steps {
-                echo 'Verifying files in the workspace...'
+                echo '🔍 Verifying files in the workspace...'
                 sh 'ls -la'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo "Building Docker image: $IMAGE_TAG"
+                echo "🔧 Building Docker image: $IMAGE_TAG"
                 sh "docker build -t $IMAGE_TAG ."
             }
         }
 
         stage('Debug Environment') {
             steps {
-                echo 'Printing environment info...'
+                echo '🧠 Printing environment info...'
                 sh 'env'
             }
         }
 
         stage('Cleanup Container') {
             steps {
-                echo "Checking for previous container: $CONTAINER_NAME"
+                echo "🧹 Checking for previous container: $CONTAINER_NAME"
                 sh """
                     docker stop $CONTAINER_NAME || true
                     docker rm $CONTAINER_NAME || true
@@ -62,14 +68,14 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                echo "Starting container: $CONTAINER_NAME"
+                echo "🚀 Starting container: $CONTAINER_NAME"
                 sh "docker run -itd --name $CONTAINER_NAME -p 8081:80 $IMAGE_TAG"
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                echo "Logging into Docker Hub and pushing image..."
+                echo "📦 Pushing image to Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                     sh "docker push $IMAGE_TAG"
@@ -80,10 +86,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline ran successfully. Image $IMAGE_TAG is live and container is running!"
+            echo "✅ Pipeline ran successfully. Image $IMAGE_TAG is live and container is running!"
         }
         failure {
-            echo "Pipeline failed. Please check the logs and fix the issue."
+            echo "❌ Pipeline failed. Please check the logs and fix the issue."
         }
     }
 }
