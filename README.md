@@ -290,3 +290,25 @@ EXPOSE 80
 
 ## Pushing this files `dockerfile` and `index.html` will trigger Jenkins to automatically run a new build for our pipeline.
 
+
+### Build Succesfully Executed
+
+![image](screenshot/1.PNG)
+
+![image](screenshot/2.PNG)
+
+![image](screenshot/3.PNG)
+
+Accessing the Application via web browser
+
+![image](screenshot/4.PNG)
+
+### Confirming build on terminal
+
+![image](screenshot/5.PNG)
+
+### Confirming image was successfully push to Docker Hub
+
+![image](screenshot/6.PNG)
+
+
